@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LEK SANDOZ - WAREHOUSE TRACKER</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* [ALL STYLES - UPDATED COLUMN WIDTHS] */
+:root{
+  --bg:#0d1117;--card:#161b22;--panel:#21262d;--muted:#30363d;
+  --accent-blue:#58a6ff;--accent-yellow:#facc15;--ok:#34d399;--warn:#ef4444; /* MODIFIED: Stronger red for warnings */
+  --text:#c9d1d9;--shadow-color:rgba(0,0,0,0.4);
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'Montserrat',sans-serif;}
+.app-container{max-width:1200px;margin:0 auto;padding:20px;}
+h1{text-align:center;margin:0 0 24px 0;font-weight:600;font-size:1.8em;display:flex;justify-content:space-between;align-items:center;}
+h1 span:first-child{flex-grow:1;text-align:center;}
+
+.adjust-section{background:var(--card);padding:16px;border-radius:10px;margin-bottom:18px;box-shadow:0 4px 12px var(--shadow-color);}
+.adjust-section h2{margin:0 0 12px 0;display:flex;align-items:center;justify-content:space-between;font-size:0.9em;text-transform:uppercase;font-weight:600;color:var(--text)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* NEW: Style for the Add New Material row */
+.new-material-controls {
+    flex-wrap: nowrap !important; /* Force no wrapping */
+    overflow-x: auto; /* Enable horizontal scroll if screen is too small */
+}
+
+.new-material-controls select,
+.new-material-controls input,
+.new-material-controls button {
+    flex-grow: 1; 
+    flex-shrink: 1;
+    min-width: 0; /* Allows elements to shrink aggressively */
+    padding: 8px 10px; /* Reduced padding */
+    font-size: 0.85em; /* Reduced font size */
+}
+
+/* NEW: Layout for Search/Data Management */
+.tools-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+.tools-container .tool-item {
+    flex: 1; /* Make both items take equal width */
+    margin-bottom: 0; 
+}
+.tools-container .controls button {
+    flex-grow: 1; 
+}
+
+
+input,select,button{
+  background:var(--muted);border:1px solid var(--muted);padding:10px 14px;border-radius:6px;
+  color:var(--text);font-size:0.95em;font-family:'Montserrat',sans-serif;
+}
+input:focus{border-color:var(--accent-blue);box-shadow:0 0 0 2px rgba(88,166,255,.3);background:var(--panel);}
+button{cursor:pointer;font-weight:600;text-transform:uppercase;font-size:.85em;letter-spacing:.5px;box-shadow:0 2px 4px rgba(0,0,0,.3);}
+button:hover{opacity:1;box-shadow:0 2px 4px rgba(0,0,0,.3);} /* Removed transform and hover shadow change */
+button:active{box-shadow:0 2px 4px rgba(0,0,0,.3);} /* Removed transform and active shadow change */
+
+.btn-add{background:var(--ok);color:var(--bg);border-color:var(--ok)}
+.btn-take{background:var(--warn);color:var(--bg);border-color:var(--warn)}
+.btn-remove{background:#ff9800;color:var(--bg);border-color:#ff9800}
+.btn-new,.add-list-btn{background:var(--accent-blue);color:var(--bg);border-color:var(--accent-blue)}
+.btn-clear{background:#777;color:#fff;padding:8px 10px;border-radius:6px;font-size:.78em;box-shadow:none;}
+
+/* ACTION BUTTONS */
+.action-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 6px;
+  font-size: 1.1em; /* Made icons slightly larger */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 30px; /* Adjusted width for icons */
+  line-height: 1; /* Ensure icon is centered vertically */
+}
+.action-btn.trash-btn { color: #ef4444; }
+.action-btn.edit-btn { color: #60a5fa; }
+.action-btn.print-action-btn { color: #34d399; } /* Style for list print icon */
+.action-btn.summary-print-btn { color: var(--text); } /* New style for summary print icon */
+.action-btn:hover {
+  background: rgba(255,255,255,.1);
+  border-color: currentColor;
+}
+
+/* Tooltip (REMOVED) */
+
+/* MODIFIED: Added margin-bottom: 18px; to .layout */
+.layout{display:flex;gap:20px;align-items:flex-start;margin-bottom:18px;}
+.main-table-container{
+  flex:4;
+  min-width:360px;
+  max-height:800px;
+  overflow:auto;
+  background:var(--panel);
+  padding:0;
+  border-radius:10px;
+  box-shadow:0 4px 12px var(--shadow-color);
+}
+.side-tables-container{
+  flex:1;
+  min-width:180px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* Side Card */
+.card{
+  background:var(--card);color:var(--text);padding:10px 12px;border-radius:8px;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;
+  border-left:4px solid var(--card);
+  position: relative;
+}
+.card:hover{background:var(--panel);}
+.card.selected{background:var(--accent-blue);color:#000;border-left:4px solid #000;}
+.card.lowstock{border-left:44px solid var(--warn);}
+.card .card-name{
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+  font-weight: 500;
+  font-size: 0.95em;
+  color: inherit;
+}
+/* REMOVED: .card .actions */
+
+/* Table */
+table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;color:var(--text);font-family:'Montserrat',sans-serif;}
+th,td{padding:12px 8px;text-align:center;border-bottom:1px solid var(--muted);word-wrap:break-word}
+th{background:var(--accent-blue);color:#000;text-transform:uppercase;position:sticky;top:0;z-index:2;font-weight:600;border-bottom:none;}
+th[onclick]{cursor:pointer;} /* Add cursor for sortable headers */
+.main-table-container table{overflow:hidden;}
+.main-table-container table thead{border-radius:10px 10px 0 0;}
+.main-table-container table thead tr th:first-child{border-top-left-radius:10px;}
+.main-table-container table thead tr th:last-child{border-top-right-radius:10px;}
+
+/* MODIFIED: Increased red color prominence for low stock rows */
+tbody tr.lowstock{background:rgba(239,68,68,.3)!important;color:var(--warn)}
+tbody tr:nth-child(even):not(.lowstock){background:var(--panel)}
+tbody tr:nth-child(odd):not(.lowstock){background:var(--card)}
+tbody tr:last-child td{border-bottom:none;}
+
+/* NEW: Styles for Quantity Text Color in the main table */
+.col-qty .inline-input {
+  font-weight: 600; /* Ensure all QTY inputs are bold */
+}
+.col-qty .inline-input.qty-stock-ok {
+  color: var(--ok) !important; /* Green for stock > minStock */
+}
+.col-qty .inline-input.qty-stock-low {
+  color: var(--warn) !important; /* Red for stock <= minStock */
+}
+
+
+/* NEW: Low Stock Summary Styles for clean, readable cards */
+.low-stock-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.low-stock-item {
+  background: var(--warn); /* Use warn color for background */
+  color: var(--bg); /* Dark text on warning background */
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column; /* Stack name and info */
+  min-width: 150px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.3);
+  flex: 1 1 100%; /* FIX: Forces item to take full width and be one per row */
+}
+
+.low-stock-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
+.low-stock-info {
+  font-size: 0.8em;
+  opacity: 0.9;
+}
+/* END NEW STYLES */
+
+#log{margin-top:16px;background:var(--panel);padding:12px;border-radius:10px;max-height:260px;overflow:auto;border:1px solid var(--muted)}
+.log-row{font-size:.85em;padding:8px 0;border-bottom:1px solid #2b2b2b}
+.log-row.added{color:var(--ok)}
+.log-row.took{color:var(--warn)}
+
+.main-category-header{display:flex;align:items:center;gap:8px;margin-bottom:10px;padding:12px 16px 0 16px;}
+.main-category-header h2{margin:0;font-size:1.05em;font-weight:600;text-transform:none}
+.small{font-size:.9em}
+
+/* Inline Input */
+.inline-input{
+  width:100%;padding:6px 4px;background:transparent;border:1px solid var(--muted);text-align:center;
+  font-size:.9em;height:30px;box-sizing:border-box;border-radius:4px;
+}
+.inline-input:focus{background:var(--panel);border-color:var(--accent-blue);box-shadow:0 0 0 2px rgba(88,166,255,.3);}
+
+/* UPDATED COLUMN WIDTHS */
+/* New widths for 5-column layout (Main Table & Search Results) */
+table th.col-id,table td.col-id{width:10%;min-width:70px;}
+table th.col-name,table td.col-name{width:52%;min-width:220px;text-align:left;padding-left:12px;} /* Reduced to 52% to give space to Unit */
+table th.col-unit,table td.col-unit{width:8%;min-width:40px;}  /* Increased to 8% to prevent wrap */
+table th.col-qty,table td.col-qty{width:8%;min-width:40px;}
+table th.col-minstock,table td.col-minstock{width:22%;min-width:70px;} /* Keep 22% */
+
+
+/* Animations (REMOVED) */
+
+@media (max-width:900px){
+  .layout{flex-direction:column}
+  .side-tables-container{order:2;min-width:unset;}
+  .app-container{padding:10px;}
+  .main-table-container{max-height:600px;}
+  /* STACK Search and Data Management on small screens */
+  .tools-container {
+    flex-direction: column; 
+  }
+}
+
+/* Modal */
+.custom-modal-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:101;}
+.custom-modal-content{background:var(--card);padding:20px;border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.8);width:90%;max-width:400px;color:var(--text);}
+.custom-modal-active{opacity:1;}
+.custom-modal-active .custom-modal-content{transform:translateY(0) scale(1);}
+#modalTitle{font-size:1.2em;font-weight:600;margin:0 0 15px 0;}
+#modalInput{width:100%;margin-bottom:15px;box-sizing:border-box;}
+.modal-buttons{display:flex;justify-content:flex-end;gap:10px;}
+.btn-cancel{background:var(--muted);color:var(--text);border-color:var(--muted);}
+.btn-cancel:hover{background:#3a4149;}
+
+/* PRINT STYLES */
+@media print {
+  body * { visibility: hidden; }
+  #print-container, #print-container * { visibility: visible; }
+  #print-container { position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
+  .no-print { display: none !important; }
+  table { width: 100%; border-collapse: collapse; font-size: 12pt; }
+  th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+  th { background-color: #f0f0f0; }
+  h1, p { color: black !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container no-print" id="main-content">
+<h1><span>LEK SANDOZ - WAREHOUSE TRACKER</span></h1>
+
+<div class="adjust-section">
+  <h2>Adjust Inventory</h2>
+  <div class="controls">
+    <input id="itemId" placeholder="Item ID">
+    <input id="quantity" type="number" placeholder="Qty">
+    <button class="btn-add" onclick="adjustInventory('add')">Add</button>
+    <button class="btn-take" onclick="adjustInventory('take')">Take</button>
+    <button class="btn-remove" onclick="removeMaterial()">Remove</button>
+  </div>
+</div>
+
+<div class="adjust-section">
+  <h2>Add New Material</h2>
+  <div class="controls new-material-controls"> <select id="newCategorySelect"></select>
+    <input id="newId" placeholder="New Item ID">
+    <input id="newName" placeholder="Name">
+    <input id="newUnit" placeholder="Unit">
+    <input id="newAmount" type="number" placeholder="Qty">
+    <input id="newMinStock" type="number" placeholder="Min Stock">
+    <button class="btn-new" onclick="addMaterial()">Add Material</button>
+  </div>
+</div>
+
+<div class="tools-container">
+  <div class="adjust-section tool-item">
+    <h2>Search Material</h2>
+    <div class="controls">
+      <input id="searchInput" placeholder="Type partial name..." oninput="onSearchInput()">
+    </div>
+  </div>
+  
+  <div class="adjust-section tool-item">
+    <h2>Data Management</h2>
+    <div class="controls">
+      <button class="btn-new" onclick="exportData()">Export</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importData(event)">
+      <button class="btn-new" onclick="document.getElementById('importFile').click()">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="main-table-container" id="mainTableContainer"></div>
+  <div class="side-tables-container" id="sideTablesContainer">
+    <button class="add-list-btn" onclick="addNewCategory()">+ Add New List</button>
+    </div>
+</div>
+
+<div class="adjust-section" id="lowStockSummaryContainer">
+  <h2>
+    <span>Low Stock Summary</span>
+    <button class="action-btn summary-print-btn" onclick="printLowStockSummary()" style="color:var(--text);font-size:1.1em;">&#128424;</button>
+  </h2>
+  <div id="lowStockList" class="low-stock-list">
+    <p style="text-align:center;color:#888;">No items currently below minimum stock.</p>
+  </div>
+</div>
+<div class="adjust-section">
+  <h2 style="display:flex;align-items:center;justify-content:space-between;">
+    <span>Change Log (Local)</span>
+    <button class="btn-clear" onclick="clearLogs()">Clear Logs</button>
+  </h2>
+  <div id="log"></div>
+</div>
+</div>
+
+<div id="print-container"></div>
+
+<div id="customModal" class="custom-modal-backdrop no-print" style="display:none;">
+  <div class="custom-modal-content">
+    <h3 id="modalTitle"></h3>
+    <p id="modalMessage"></p>
+    <input type="text" id="modalInput" style="display:none;">
+    <div class="modal-buttons">
+      <button id="modalCancel" class="btn-cancel">Cancel</button>
+      <button id="modalConfirm" class="btn-new">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Local Storage ----------
+const LS_MATERIALS = "warehouseMaterials_final_local";
+const LS_CATEGORY = "warehouseCurrentCategory_final_local";
+const LS_LOG = "warehouseLog_final";
+
+let materials = {};
+let categories = [];
+let currentCategory = 'default';
+let currentSearchTerm = "";
+let logData = [];
+
+// --- Sort state ---
+let currentSortColumn = 'id';
+let currentSortDirection = 'asc';
+
+// DOM
+const mainContainer = document.getElementById("mainTableContainer");
+const sideContainer = document.getElementById("sideTablesContainer");
+const newSelect = document.getElementById("newCategorySelect");
+const logDiv = document.getElementById("log");
+const searchInput = document.getElementById("searchInput");
+const printContainer = document.getElementById("print-container");
+const lowStockListDiv = document.getElementById("lowStockList"); 
+
+// Modal
+const customModal = document.getElementById('customModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalMessage = document.getElementById('modalMessage');
+const modalInput = document.getElementById('modalInput');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm = document.getElementById('modalConfirm');
+
+// ---------- Utils ----------
+function loadLocalLogs(){
+  try{ logData = JSON.parse(localStorage.getItem(LS_LOG))||[]; }
+  catch(e){ console.error("Log load error:",e); logData=[]; }
+}
+function saveLocalLogs(){ localStorage.setItem(LS_LOG,JSON.stringify(logData)); }
+function pushLog(msg){
+  logData.unshift({msg,timestamp:Date.now()});
+  if(logData.length>50) logData.pop();
+  saveLocalLogs();
+  renderLog();
+}
+
+function loadAll(){
+  try{
+    const stored = localStorage.getItem(LS_MATERIALS);
+    const cat = localStorage.getItem(LS_CATEGORY);
+    materials = stored?JSON.parse(stored):{};
+    currentCategory = cat||'default';
+    if(Object.keys(materials).length===0){
+      materials={'default':{key:'default',name:'Main Warehouse',items:[]}};
+      currentCategory='default';
+    }
+    categories = Object.keys(materials);
+    if(!categories.includes(currentCategory)) currentCategory = categories[0]||'default';
+  }catch(e){
+    console.error("Load error:",e);
+    materials={'default':{key:'default',name:'Main Warehouse',items:[]}};
+    currentCategory='default';
+    categories=['default'];
+  }
+}
+function saveAll(){
+  localStorage.setItem(LS_MATERIALS,JSON.stringify(materials));
+  localStorage.setItem(LS_CATEGORY,currentCategory);
+}
+
+function showCustomModal({title,message,input=false,inputValue='',confirmText='Confirm'}){
+  return new Promise(resolve=>{
+    modalTitle.textContent=title;
+    modalMessage.innerHTML=message;
+    modalInput.style.display=input?'block':'none';
+    modalInput.value=inputValue;
+    modalConfirm.textContent=confirmText;
+    modalCancel.style.display=(confirmText!=='OK')?'inline-flex':'none';
+
+    const cleanup=()=>{
+      modalConfirm.removeEventListener('click',handleConfirm);
+      modalCancel.removeEventListener('click',handleCancel);
+      modalInput.onkeydown=null;
+      customModal.classList.remove('custom-modal-active');
+      setTimeout(()=>{customModal.style.display='none';},200);
+    };
+    const handleConfirm=()=>{ 
+      resolve(input ? modalInput.value.trim() : true);
+      cleanup(); 
+    };
+    const handleCancel=()=>{ resolve(false); cleanup(); };
+
+    modalConfirm.addEventListener('click',handleConfirm);
+    modalCancel.addEventListener('click',handleCancel);
+    customModal.style.display='flex';
+    setTimeout(()=>customModal.classList.add('custom-modal-active'),10);
+
+    if(input){
+      setTimeout(()=>modalInput.focus(),10);
+      modalInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();handleConfirm();}};
+    }else setTimeout(()=>modalConfirm.focus(),10);
+  });
+}
+function showAlertModal(title,message){ return showCustomModal({title,message,input:false,confirmText:"OK"}); }
+
+// ---------- DATA MANAGEMENT (EXPORT/IMPORT) ----------
+
+function exportData() {
+  const data = {
+    materials: materials,
+    logData: logData
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  
+  // Format filename: warehouse_export_YYYYMMDD_HHMMSS.json
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+  const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '').substring(0,6); // HHMMSS
+  const filename = `warehouse_export_${dateStr}_${timeStr}.json`;
+
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  pushLog("Exported data to JSON file.");
+}
+
+async function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      
+      if (!importedData.materials || !importedData.logData) {
+        return showAlertModal("Import Error", "The file format is incorrect. Missing 'materials' or 'logData' properties.");
+      }
+
+      const ok = await showCustomModal({
+        title: "Confirm Import",
+        message: "Are you sure you want to **overwrite all existing data** (lists, items, and log) with the imported file?",
+        confirmText: "Overwrite"
+      });
+
+      if (ok) {
+        // Overwrite data
+        materials = importedData.materials;
+        logData = importedData.logData;
+        categories = Object.keys(materials);
+        currentCategory = categories.length > 0 ? categories[0] : 'default';
+
+        // Save to local storage
+        saveAll(); 
+        saveLocalLogs(); 
+
+        // Re-render UI
+        renderTables(); 
+
+        showAlertModal("Import Success", "Data successfully imported and applied.");
+        pushLog("Successfully imported data from file.");
+      }
+      
+    } catch (error) {
+      showAlertModal("Import Error", "Could not process the file. Ensure it is a valid JSON file. Error: " + error.message);
+    } finally {
+      // Clear the file input so the same file can be imported again
+      document.getElementById('importFile').value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- PRINT ----------
+function printCurrentList() {
+  const list = materials[currentCategory];
+  if (!list || !list.items.length) {
+    showAlertModal("Empty List", "This list has no items to print.");
+    return;
+  }
+
+  const listName = list.name || currentCategory;
+  const date = new Date().toLocaleDateString();
+
+  printContainer.innerHTML = `
+    <div style="padding:40px;font-family:Arial,Helvetica,sans-serif;">
+      <h1 style="text-align:center;margin-bottom:30px;font-size:24pt;">LEK SANDOZ - WAREHOUSE: ${listName}</h1>
+      <p style="text-align:center;color:#555;margin-bottom:30px;font-size:12pt;">Printed on: ${date}</p>
+      <table style="width:100%;border-collapse:collapse;margin:0 auto;font-size:11pt;">
+        <thead>
+          <tr style="background:#f0f0f0;">
+            <th style="border:1px solid #000;padding:10px;text-align:left;font-weight:bold;">ID</th>
+            <th style="border:1px solid #000;padding:10px;text-align:left;font-weight:bold;">Name</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">Unit</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">QTY</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">Min Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.items.map(item => `
+            <tr ${item.amount <= item.minStock ? 'style="color: red;"' : ''}>
+              <td style="border:1px solid #000;padding:8px;">${item.id}</td>
+              <td style="border:1px solid #000;padding:8px;">${item.name}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;">${item.unit}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;color: ${item.amount <= item.minStock ? 'red' : 'green'};">${item.amount}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;">${item.minStock}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  window.print();
+}
+
+// ---------- INLINE EDIT (FIXED FOR DATA INTEGRITY) ----------
+
+// Helper function to locate item by ID
+function findItem(cat, id) {
+  const list = materials[cat];
+  // Note: Using String(id) comparison for robustness against mixed number/string IDs
+  const index = list.items.findIndex(i => String(i.id) === String(id));
+  if (index !== -1) {
+      return { item: list.items[index], index: index };
+  }
+  return { item: null, index: -1 };
+}
+
+// New generic inline update handler
+async function handleInlineChange(input, field) {
+  const cat = input.dataset.category;
+  const idToLocate = input.dataset.id; // This is the ID of the item *before* the change, used for locating
+  const { item, index } = findItem(cat, idToLocate);
+
+  if (!item) {
+    console.error("Item not found during inline update:", idToLocate);
+    renderTables();
+    return;
+  }
+    
+  const value = input.value.trim();
+  const oldValue = item[field]; // Get the value from the source-of-truth object
+  let logValue = value; // Default log value
+
+  // 1. Handle validation and potential rejection
+  if (field === 'amount' || field === 'minStock') {
+    const num = parseFloat(value);
+    if (isNaN(num) || num < 0) {
+      input.value = oldValue; // Revert
+      return;
+    }
+    item[field] = num;
+  } else if (field === 'id') {
+    // ID-specific validation
+    if (value === String(oldValue)) return; // No change
+    if (!value) {
+      input.value = oldValue; // Revert
+      return;
+    }
+    
+    // Check for duplicate in the same category, excluding the item being edited
+    const isDuplicate = materials[cat].items.some((i, j) => j !== index && String(i.id) === value);
+
+    if (isDuplicate) {
+      await showAlertModal("Error", `Item ID "${value}" already exists in this list.`);
+      input.value = oldValue; // Revert
+      return;
+    }
+    item[field] = value;
+  } else { // Handles 'name' and 'unit'
+    if (!value) {
+      input.value = oldValue; // Revert: Name and unit cannot be empty
+      return;
+    }
+    item[field] = value;
+    logValue = value;
+  }
+
+  // 2. Logging, Saving, and Rerendering
+  // If the field is 'id', item.name might be the old name, but the log still reflects the successful change.
+  // If the field is 'name', item.name is already updated.
+  pushLog(`Updated ${item.name} in ${materials[cat].name}: ${field} → ${logValue}`);
+  saveAll();
+  renderTables(); 
+}
+
+
+// ---------- Sorting ----------
+// Function to set sort column and direction
+function setSort(column) {
+  if (column === currentSortColumn) {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortColumn = column;
+    currentSortDirection = 'asc';
+  }
+  renderTables(); // Re-render the table with new sort
+}
+
+// Helper function for sorting logic
+function sortItems(a, b) {
+  const aVal = a[currentSortColumn];
+  const bVal = b[currentSortColumn];
+  let compare = 0;
+
+  if (currentSortColumn === 'id') {
+    // Use localeCompare with numeric option for "natural" sort of IDs like '1', '10', '2'
+    compare = String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+  } else if (currentSortColumn === 'name') {
+    compare = String(aVal).localeCompare(String(bVal), 'en', { sensitivity: 'base' });
+  } else {
+    // Fallback for numeric columns like 'amount' and 'minStock'
+    const numA = parseFloat(aVal);
+    const numB = parseFloat(bVal);
+    if (!isNaN(numA) && !isNaN(numB)) {
+      compare = numA - numB;
+    } else {
+      compare = String(aVal).localeCompare(String(bVal));
+    }
+  }
+  
+  return currentSortDirection === 'asc' ? compare : -compare;
+}
+
+
+// ---------- Low Stock Logic ----------
+
+// NEW: Helper function to gather all low stock items across all lists
+function getLowStockItems() {
+  const lowStockItems = [];
+  categories.forEach(catKey => {
+    const list = materials[catKey];
+    list.items.forEach(item => {
+      if (item.amount <= item.minStock) {
+        lowStockItems.push({
+          ...item,
+          listName: list.name,
+          categoryKey: catKey 
+        });
+      }
+    });
+  });
+  // Sort by lowest quantity first
+  lowStockItems.sort((a, b) => a.amount - b.amount);
+  return lowStockItems;
+}
+
+// NEW: Function to print the low stock summary
+function printLowStockSummary() {
+  const lowStockItems = getLowStockItems(); 
+
+  if (lowStockItems.length === 0) {
+    showAlertModal("Empty List", "No items are currently below minimum stock to print.");
+    return;
+  }
+
+  const date = new Date().toLocaleDateString();
+
+  printContainer.innerHTML = `
+    <div style="padding:40px;font-family:Arial,Helvetica,sans-serif;">
+      <h1 style="text-align:center;margin-bottom:30px;font-size:24pt;">LEK SANDOZ - LOW STOCK SUMMARY</h1>
+      <p style="text-align:center;color:#555;margin-bottom:30px;font-size:12pt;">Printed on: ${date}</p>
+      <table style="width:100%;border-collapse:collapse;margin:0 auto;font-size:11pt;">
+        <thead>
+          <tr style="background:#f0f0f0;">
+            <th style="border:1px solid #000;padding:10px;text-align:left;font-weight:bold;">List</th>
+            <th style="border:1px solid #000;padding:10px;text-align:left;font-weight:bold;">ID</th>
+            <th style="border:1px solid #000;padding:10px;text-align:left;font-weight:bold;">Name</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">Unit</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">QTY</th>
+            <th style="border:1px solid #000;padding:10px;text-align:center;font-weight:bold;">Min Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lowStockItems.map(item => `
+            <tr style="color: red;">
+              <td style="border:1px solid #000;padding:8px;">${item.listName}</td>
+              <td style="border:1px solid #000;padding:8px;">${item.id}</td>
+              <td style="border:1px solid #000;padding:8px;">${item.name}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;">${item.unit}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;">${item.amount}</td>
+              <td style="border:1px solid #000;padding:8px;text-align:center;">${item.minStock}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  window.print();
+}
+
+
+// ---------- Rendering ----------
+function renderTables(){
+  if(currentSearchTerm) renderSearchResults();
+  else renderMainTable();
+  renderSideCards(); 
+  updateSelects(); 
+  renderLowStockSummary(); 
+  renderLog();
+}
+
+// MODIFIED: To use the new getLowStockItems helper function
+function renderLowStockSummary() {
+  const lowStockItems = getLowStockItems(); 
+
+  if (lowStockItems.length === 0) {
+    lowStockListDiv.innerHTML = '<p style="text-align:center;color:#888;">No items currently below minimum stock.</p>';
+    return;
+  }
+
+  lowStockListDiv.innerHTML = lowStockItems.map(item => `
+    <div class="low-stock-item">
+      <div class="low-stock-name">${item.name} (${item.listName})</div>
+      <div class="low-stock-info">
+        QTY: <span style="font-weight:700;">${item.amount}</span> / Min: ${item.minStock} (${item.unit})
+      </div>
+    </div>
+  `).join('');
+}
+
+// --- MODIFIED: To add color class to QTY input ---
+function renderMainTable(){
+  const list = materials[currentCategory] || { items: [] };
+  const listName = list.name || currentCategory;
+
+  // 1. Map items to include their original index *before* sorting
+  let itemsWithIndex = list.items.map((item, index) => ({
+    item: item,
+    originalIndex: index // Keep index for sorting stability
+  }));
+
+  // 2. Sort the new array using the item object
+  itemsWithIndex.sort((a, b) => sortItems(a.item, b.item));
+
+  // 3. Helper to get sort indicator arrows
+  const getSortIndicator = (column) => {
+    if (column !== currentSortColumn) return '';
+    return currentSortDirection === 'asc' ? ' &uarr;' : ' &darr;';
+  };
+  
+  mainContainer.innerHTML="";
+  const wrapper=document.createElement("div"); 
+  wrapper.style.padding="0 16px 16px 16px";
+
+  // --- Header with Icon Buttons ---
+  const header=document.createElement("div"); 
+  header.className="main-category-header";
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+
+  header.innerHTML=`<h2 style="margin:0;">${listName}</h2>`;
+
+  const headerActions = document.createElement('div');
+  headerActions.style.display = 'flex';
+  headerActions.style.gap = '6px';
+
+  const renameBtn = document.createElement('button');
+  renameBtn.className = 'action-btn edit-btn';
+  renameBtn.innerHTML = '&#9998;'; // Pencil Icon
+  renameBtn.setAttribute('data-tooltip', 'Rename List');
+  renameBtn.onclick = e => { e.stopPropagation(); renameCategory(currentCategory); };
+  headerActions.appendChild(renameBtn);
+
+  const printBtn = document.createElement('button');
+  printBtn.className = 'action-btn print-action-btn';
+  printBtn.innerHTML = '&#128424;'; // Printer Icon
+  printBtn.setAttribute('data-tooltip', 'Print List');
+  printBtn.onclick = e => { e.stopPropagation(); printCurrentList(); };
+  headerActions.appendChild(printBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'action-btn trash-btn';
+  deleteBtn.innerHTML = '&#128465;'; // Trash Icon
+  deleteBtn.setAttribute('data-tooltip', 'Delete List');
+  deleteBtn.onclick = e => { e.stopPropagation(); deleteCategory(currentCategory); };
+  headerActions.appendChild(deleteBtn);
+
+  header.appendChild(headerActions);
+  mainContainer.appendChild(header);
+  // --- Header END ---
+
+  const table=document.createElement("table");
+  table.innerHTML=`
+  <thead><tr>
+    <th class="col-id" onclick="setSort('id')">ID${getSortIndicator('id')}</th>
+    <th class="col-name" onclick="setSort('name')">Name${getSortIndicator('name')}</th>
+    <th class="col-unit">Unit</th>
+    <th class="col-qty" onclick="setSort('amount')">QTY${getSortIndicator('amount')}</th>
+    <th class="col-minstock" onclick="setSort('minStock')">Min Stock${getSortIndicator('minStock')}</th>
+  </tr></thead>
+  <tbody>
+    ${itemsWithIndex.map(({ item: it, originalIndex }, sortedIndex) => {
+      const lowClass = (it.amount <= it.minStock) ? "lowstock" : "";
+      const qtyClass = (it.amount <= it.minStock) ? "qty-stock-low" : "qty-stock-ok"; // NEW CLASS
+      const catKey = currentCategory;
+      const itemId = it.id; // The unique ID for lookup
+      
+      // All inputs now use data-attributes and the generic handler
+      return `<tr class="${lowClass}">
+        <td class="col-id"><input type="text" class="inline-input" value="${itemId}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'id')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-name"><input type="text" class="inline-input" value="${it.name}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'name')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-unit"><input type="text" class="inline-input" value="${it.unit}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'unit')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-qty"><input type="number" class="inline-input ${qtyClass}" value="${it.amount}" min="0" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'amount')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-minstock"><input type="number" class="inline-input" value="${it.minStock}" min="0" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'minStock')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+      </tr>`;
+    }).join("")}
+  </tbody>`;
+  wrapper.appendChild(table); 
+  mainContainer.appendChild(wrapper);
+}
+
+// --- MODIFIED: To add color class to QTY input ---
+function renderSearchResults(){
+  mainContainer.innerHTML = "";
+  let allResults = []; // Flattened array of all matching items
+
+  categories.forEach(cat => {
+    const list = materials[cat];
+    list.items.forEach((item, idx) => {
+      if (item.name.toLowerCase().includes(currentSearchTerm)) {
+        // Store all necessary info in one flat array
+        allResults.push({ 
+          item: item, 
+          categoryKey: cat,
+          categoryName: list.name
+        });
+      }
+    });
+  });
+
+  if (allResults.length === 0) {
+    mainContainer.innerHTML = `<div style="padding:20px;text-align:center;color:#888;">No items found for "${currentSearchTerm}"</div>`;
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.style.padding = "0 16px 16px 16px";
+  
+  // Helper to get sort indicator arrows
+  const getSortIndicator = (column) => {
+    if (column !== currentSortColumn) return '';
+    return currentSortDirection === 'asc' ? ' &uarr;' : ' &darr;';
+  };
+
+  // --- Sort the combined list ---
+  allResults.sort((a, b) => sortItems(a.item, b.item));
+
+  // --- Single Header for all results ---
+  const header = document.createElement("div");
+  header.className = "main-category-header";
+  header.innerHTML = `<h2>Search Results <span style="font-weight:400;font-size:0.9em;color:#888;">(${allResults.length} found for "${searchInput.value.trim()}")</span></h2>`;
+  mainContainer.appendChild(header);
+
+  const table = document.createElement("table");
+  // The table now contains 5 columns: ID, Name, Unit, QTY, Min Stock
+  table.innerHTML = `
+  <thead><tr>
+    <th class="col-id" onclick="setSort('id')">ID${getSortIndicator('id')}</th>
+    <th class="col-name" onclick="setSort('name')">Name${getSortIndicator('name')}</th>
+    <th class="col-unit">Unit</th>
+    <th class="col-qty" onclick="setSort('amount')">QTY${getSortIndicator('amount')}</th>
+    <th class="col-minstock" onclick="setSort('minStock')">Min Stock${getSortIndicator('minStock')}</th>
+  </tr></thead>
+  <tbody>
+    ${allResults.map((result, i) => { 
+      const lowClass = (result.item.amount <= result.item.minStock) ? "lowstock" : "";
+      const qtyClass = (result.item.amount <= result.item.minStock) ? "qty-stock-low" : "qty-stock-ok"; // NEW CLASS
+      const it = result.item;
+      const catKey = result.categoryKey;
+      const itemId = it.id;
+
+      // All inputs now use data-attributes and the generic handler
+      return `<tr class="${lowClass}">
+        <td class="col-id"><input type="text" class="inline-input" value="${itemId}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'id')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-name"><input type="text" class="inline-input" value="${it.name}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'name')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-unit"><input type="text" class="inline-input" value="${it.unit}" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'unit')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-qty"><input type="number" class="inline-input ${qtyClass}" value="${it.amount}" min="0" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'amount')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+        <td class="col-minstock"><input type="number" class="inline-input" value="${it.minStock}" min="0" data-category="${catKey}" data-id="${itemId}" onchange="handleInlineChange(this,'minStock')" onkeydown="if(event.key==='Enter')this.blur()"></td>
+      </tr>`;
+    }).join("")}
+  </tbody>`;
+  wrapper.appendChild(table);
+  mainContainer.appendChild(wrapper);
+}
+
+// --- MODIFIED: Removed delete button from side cards ---
+function renderSideCards(){
+  const cards = sideContainer.querySelectorAll('.card');
+  cards.forEach(card => card.remove());
+
+  // Find the button to insert before (now the add-list-btn is the only other button)
+  const addBtn = sideContainer.querySelector('.add-list-btn');
+
+  categories.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'card' + (cat === currentCategory ? ' selected' : '');
+    const list = materials[cat] || { items: [], name: cat };
+
+    const nameSpan = document.createElement('div');
+    nameSpan.className = 'card-name';
+    nameSpan.textContent = list.name;
+    card.appendChild(nameSpan);
+
+    // --- REMOVED: Delete button logic ---
+
+    card.onclick = () => {
+      if (currentCategory !== cat) {
+        currentCategory = cat;
+        saveAll();
+        // Reset sort when changing category
+        currentSortColumn = 'id';
+        currentSortDirection = 'asc';
+        renderTables();
+      }
+    };
+
+    if (list.items.some(i => i.amount <= i.minStock)) card.classList.add('lowstock');
+
+    // Insert the card *after* the "+ Add New List" button
+    addBtn.after(card);
+  });
+}
+
+function updateSelects(){
+  newSelect.innerHTML = "";
+  categories.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = materials[cat].name;
+    newSelect.appendChild(opt);
+  });
+  newSelect.value = currentCategory;
+}
+
+
+function renderLog(){
+  logDiv.innerHTML = "";
+  logData.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    if (entry.msg.startsWith("Added")) row.classList.add('added');
+    if (entry.msg.startsWith("Took")) row.classList.add('took');
+    row.textContent = `[${new Date(entry.timestamp).toLocaleTimeString()}] ${entry.msg}`;
+    logDiv.appendChild(row);
+  });
+}
+
+// ---------- CRUD ----------
+async function addNewCategory(){
+  const name = await showCustomModal({title:"New List",message:"Enter list name:",input:true,confirmText:"Create"});
+  if (!name) return;
+  const key = name.toLowerCase().trim().replace(/[^a-z0-9]+/g,"_").substring(0,50);
+  if (!key || categories.includes(key)) return showAlertModal("Error","Invalid or duplicate name.");
+  materials[key] = { name, key, items: [] };
+  categories.push(key);
+  currentCategory = key;
+  pushLog(`Created list: ${name}`);
+  saveAll();
+  renderTables();
+}
+
+async function deleteCategory(cat){
+  const name = materials[cat]?.name || cat;
+  const ok = await showCustomModal({title:`Delete ${name}?`,message:`This will delete ALL items in "${name}".`,confirmText:"Delete"});
+  if (!ok) return;
+  delete materials[cat];
+  categories = Object.keys(materials);
+  if (categories.length === 0) {
+    materials = { 'default': { key: 'default', name: 'Main Warehouse', items: [] } };
+    categories = ['default'];
+    currentCategory = 'default';
+    pushLog("Auto-created Main Warehouse");
+  } else {
+    currentCategory = categories.includes(currentCategory) ? currentCategory : categories[0];
+  }
+  pushLog(`Deleted list: ${name}`);
+  saveAll();
+  renderTables();
+}
+
+function renameCategory(cat){
+  const cur = materials[cat]?.name || cat;
+  showCustomModal({title:"Rename List",message:`New name for "${cur}":`,input:true,inputValue:cur,confirmText:"Rename"})
+    .then(newName => {
+      if (newName && newName !== cur) {
+        materials[cat].name = newName;
+        pushLog(`Renamed ${cur} to ${newName}`);
+        saveAll();
+        renderTables();
+      }
+    });
+}
+
+function addMaterial(){
+  const cat = newSelect.value || currentCategory;
+  const id = document.getElementById("newId").value.trim();
+  const name = document.getElementById("newName").value.trim();
+  const unit = document.getElementById("newUnit").value.trim();
+  const amount = parseFloat(document.getElementById("newAmount").value);
+  const minStock = parseFloat(document.getElementById("newMinStock").value);
+
+  if (!id || !name || !unit || isNaN(amount) || isNaN(minStock) || amount < 0 || minStock < 0)
+    return showAlertModal("Error", "Fill all fields with valid non-negative numbers.");
+
+  if (!materials[cat]) {
+    materials[cat] = { key: cat, name: cat, items: [] };
+    if (!categories.includes(cat)) categories.push(cat);
+  }
+
+  const list = materials[cat];
+  if (list.items.some(i => String(i.id) === id))
+    return showAlertModal("Error", "Item ID already exists in this list.");
+
+  list.items.push({ id, name, unit, amount, minStock });
+  pushLog(`Added ${name} to ${list.name}`);
+  
+  ["newId", "newName", "newUnit", "newAmount", "newMinStock"].forEach(fid => 
+    document.getElementById(fid).value = ""
+  );
+  
+  saveAll();
+  renderTables();
+}
+
+async function adjustInventory(action) {
+  const id = document.getElementById("itemId").value.trim();
+  const qty = parseFloat(document.getElementById("quantity").value);
+  if (!id || isNaN(qty) || qty <= 0) 
+    return showAlertModal("Error", "Enter valid ID and positive quantity.");
+
+  let foundItem = null;
+  let foundCategory = null;
+  let foundListName = null;
+
+  for (const cat of categories) {
+    const list = materials[cat];
+    const item = list.items.find(i => String(i.id) === id);
+    if (item) {
+      foundItem = item;
+      foundCategory = cat;
+      foundListName = list.name;
+      break;
+    }
+  }
+
+  if (!foundItem) 
+    return showAlertModal("Error", "Item not found in any list.");
+
+  let change = action === 'add' ? qty : -qty;
+  if (action === 'take' && foundItem.amount < qty) {
+    const ok = await showCustomModal({
+      title: "Low Stock",
+      message: `Only ${foundItem.amount} available. Take ${qty} anyway?`,
+      confirmText: "Take"
+    });
+    if (!ok) return;
+  }
+
+  foundItem.amount += change;
+  pushLog(`${action === 'add' ? 'Added' : 'Took'} ${qty} of ${foundItem.name} (${foundListName})`);
+
+  document.getElementById("itemId").value = "";
+  document.getElementById("quantity").value = "";
+  saveAll();
+  renderTables();
+}
+
+async function removeMaterial() {
+  const id = document.getElementById("itemId").value.trim();
+  if (!id) return showAlertModal("Error", "Enter item ID.");
+
+  let foundItem = null;
+  let foundCategory = null;
+  let foundListName = null;
+
+  for (const cat of categories) {
+    const list = materials[cat];
+    const idx = list.items.findIndex(i => String(i.id) === id);
+    if (idx !== -1) {
+      foundItem = list.items[idx];
+      foundCategory = cat;
+      foundListName = list.name;
+      break;
+    }
+  }
+
+  if (!foundItem) 
+    return showAlertModal("Error", "Item not found in any list.");
+
+  const ok = await showCustomModal({
+    title: `Remove ${foundItem.name}?`,
+    message: `Found in "${foundListName}". This is permanent.`,
+    confirmText: "Remove"
+  });
+  if (!ok) return;
+
+  materials[foundCategory].items = materials[foundCategory].items.filter(i => String(i.id) !== id);
+  pushLog(`Removed ${foundItem.name} from ${foundListName}`);
+
+  document.getElementById("itemId").value = "";
+  saveAll();
+  renderTables();
+}
+
+function onSearchInput(){
+  currentSearchTerm = searchInput.value.trim().toLowerCase();
+  renderTables();
+}
+
+async function clearLogs(){
+  const ok = await showCustomModal({title:"Clear Logs?",message:"This cannot be undone.",confirmText:"Clear"});
+  if (ok) { logData = []; saveLocalLogs(); renderLog(); }
+}
+
+window.onload = () => { 
+  loadLocalLogs(); 
+  loadAll(); 
+  renderTables(); 
+};
+</script></body>
+</html>
